@@ -1,0 +1,211 @@
+{#
+/**
+ * @file
+ *
+ * Default product template.
+ *
+ * Available variables:
+ * - attributes: HTML attributes for the wrapper.
+ * - product: The rendered product fields.
+ *   Use 'product' to print them all, or print a subset such as
+ *   'product.title'. Use the following code to exclude the
+ *   printing of a given field:
+ *   @code
+ *   {{ product|without('title') }}
+ *   @endcode
+ * - product_entity: The product entity.
+ * - product_url: The product URL.
+ *
+ * @ingroup themeable
+ */
+ #}
+
+
+
+    
+    {# <div class='img-overlay'>
+    <div id="loading-spinner-wrapper"><div class="loading-spinner"><div></div><div></div><div></div><div></div></div></div>
+    </div> #}
+
+{% set term_image = product.field_brands[0]['#entity'].field_brand_icon.0 %}
+{# {{dump(_context)}} #}
+<ul class="breadcrumb">
+	<li class="breadcrumb-item">
+		<a href="/">Home</a>
+	</li>
+	<li class="breadcrumb-item">
+	
+	{% if current_langcode == 'de' %}
+	 <a href="/de/product-list/{{ path('entity.taxonomy_term.canonical', {'taxonomy_term': product.field_product_category['#items'][0].entity.parent.entity.id})|slice(4,) }}">{{ parent_category_name }}</a>
+	 {% else %}
+	  <a href="/en/product-list/{{ path('entity.taxonomy_term.canonical', {'taxonomy_term': product.field_product_category['#items'][0].entity.parent.entity.id})|slice(4,) }}">{{ parent_category_name }}</a>
+	  {% endif %}
+	</li>
+	<li class="breadcrumb-item">{{product.title}}</li>
+</ul>
+
+
+<div class="product-detail-page">
+	<div class="container">
+		<div class="row">
+			<div class="product-detail-left col-lg-6 p-0 pe-lg-4 mb-3 mb-lg-0">
+				<div class="main-product-img-section mb-3">
+					<div class="product-image-top">{{product.field_upload_product_image[0]}}</div>
+				</div>
+				<small>{{product.field_product_disclaimer_text}}</small>
+
+			</div>
+			<div class="product-detail-right col-lg-6 p-0 ps-lg-4">
+				<span class="mb-3"><img src="{{ file_url(term_image.entity.uri.value) }}"></span>
+				<h2>{{product.title}}</h2>
+				<h6 class="selected-variation"></h6>
+				 {% set totalItem = 0 %}
+				{% for item in stock_data %}
+					{% if item.stock == 0 %}
+						{% set totalItem = totalItem + 1 %}
+					{% endif %}
+				{% endfor %}
+ 				{% if totalItem == stock_data|length %}
+					<p class="stock-unavailable">{{ 'Out of stock'|t }}</p>	
+				{% else %}
+					{% if product.field_in_stock[0]['#markup'] == 'Yes' %}
+						<p class="stock-available">{{ 'In stock'|t }}</p>
+					{% else %}
+						<p class="stock-unavailable">{{ 'Out of stock'|t }}</p>
+					{% endif %}
+					
+ 				{% endif %}
+			
+
+				{% set request_quote_class = "" %}
+				{% set request_quote_markup = "" %}
+
+				{% if product.field_request_a_quote[0]['#markup'] == 'Yes' %}
+					{% set request_quote_class = "request-a-quote" %}
+					{% set current_url = url('<current>') %}
+					{% set request_quote_markup = '<a href="/request-a-quote?producturl=' ~ current_url['#markup']  ~ '" class="request-a-quote-button cta-button button-hover hovered">' ~ 'Request a quote'|t ~ '</a>' %}
+				{% elseif product.field_in_stock[0]['#markup'] == 'No' %}
+					{% set request_quote_class = "request-a-quote" %}
+					{% set current_url = url('<current>') %}
+					{% set request_quote_markup = '<a href="/request-a-quote?producturl=' ~ current_url['#markup']  ~ '" class="request-a-quote-button cta-button button-hover hovered">' ~ 'Request a quote'|t ~ '</a>' %}
+				{% endif %}
+
+
+
+				<div class="product-add-to-cart-button {{ request_quote_class }}">{{ product.variations }}
+					{{ request_quote_markup|raw }}
+				</div>
+				{#<div class="product-quantity-price">{{ drupal_view('product_prices_by_quantity', 'block_1') }}	</div>#}
+				{#<div class="product-price">{{ product.variation_price }}</div> #}
+				<p>Preise freibleibend und exkl. MwSt<br>Die dargestellten Farben dienen als Richtwert und kénnen von der Realitat abweichen</p>
+				{% if product_entity.field_brands.value == true %}
+					<div class="product-detail">
+						<b>{{ 'Productdetails:'|t }}</b><br>
+
+						
+						<ul>
+							<li>
+								{{product.title}}</li>
+						</ul>
+						<ul class="product-attribute-label"></ul>
+						<ul class="product-attribute-label2"></ul>
+					</div>
+				{% endif %}
+
+			</div>
+		</div>
+	</div>
+
+	<div class="product-tab-section container mt-5 mb-5">
+
+		<div id="tabs">
+			{% if product_entity.body.value == true %}
+				<div class="tab active" data-tab="tab1">
+					{# <span>Product Description</span> #}
+					<span>{{product_entity.body.getFieldDefinition().label}}</span>
+				</div>
+			{% endif %}
+			{% if product_entity.field_product_specification.value == true %}
+				<div class="tab" data-tab="tab2">
+					{# <span>Product Specification</span> #}
+					<span>{{product_entity.field_product_specification.getFieldDefinition().label}}</span>
+				</div>
+			{% endif %}
+			{% if product_entity.field_advantages.value == true %}
+				<div class="tab" data-tab="tab3">
+					{# <span>Advantages</span> #}
+					<span>{{product_entity.field_advantages.getFieldDefinition().label}}</span>
+				</div>
+			{% endif %}
+			{% if product_entity.field_registration.value == true %}
+				<div class="tab" data-tab="tab4">
+					{# <span>Registration</span> #}
+					<span>{{product_entity.field_registration.getFieldDefinition().label}}</span>
+				</div>
+			{% endif %}
+			{% if product_entity.field_price_list.entity.field_title.value == true %}
+				<div class="tab" data-tab="tab5">
+					{# <span>Price List</span> #}
+					<span>{{product_entity.field_price_list.getFieldDefinition().label}}</span>
+				</div>
+			{% endif %}
+		</div>
+		<div id="tab-contents">
+			{% if product_entity.body.value == true %}
+				{% set header_text = 'Product Description' %}
+					{# {{dump(product_entity.body)}} #}
+				<div class="tab-content" id="tab1">
+					<div class="tab-content-header d-lg-none">
+						<span class="close"></span>
+						<span>{{ header_text }}</span>
+						{# <span>{{product_entity.body.getFieldDefinition().labe}}</span> #}
+					</div>
+					{{product.body}}
+				</div>
+			{% endif %}
+			{% if product_entity.field_product_specification.value == true %}
+				{% set header_text = 'Product Specification' %}
+				<div class="tab-content" id="tab2">
+					<div class="tab-content-header d-lg-none">
+						<span class="close"></span>
+						{# <span>{{ header_text }}</span> #}
+						
+					</div>
+					{{product.field_product_specification}}
+				</div>
+			{% endif %}
+			{% if product_entity.field_advantages.value == true %}
+				{% set header_text = 'Advantages' %}
+				<div class="tab-content" id="tab3">
+					<div class="tab-content-header d-lg-none">
+						<span class="close"></span>
+						{# <span>{{ header_text }}</span> #}
+						
+					</div>
+					{{product.field_advantages}}
+				</div>
+			{% endif %}
+			{% if product_entity.field_registration.value == true %}
+				{% set header_text = 'Registration' %}
+				<div class="tab-content" id="tab4">
+					<div class="tab-content-header d-lg-none">
+						<span class="close"></span>
+						{# <span>{{ header_text }}</span> #}
+						
+					</div>
+					{{product.field_registration}}
+				</div>
+			{% endif %}
+			{% if product_entity.field_price_list.entity.field_title.value == true %}
+				{% set header_text = 'Price List' %}
+				<div class="tab-content" id="tab5">
+					<div class="tab-content-header d-lg-none">
+						<span class="close"></span>
+						{# <span>{{ header_text }}</span> #}
+						
+					</div>
+					{{product.field_price_list}}</div>
+			{% endif %}
+		</div>
+	</div>
+</div>
