@@ -1,0 +1,17 @@
+https://demoworksite.online
+==============================
+User:- psimeons
+Password:- hg&Tz432
+===============================
+FTP information
+Host: ftp.demoworksite.online	
+Username: u886847642.leanport
+Password: WwgSAt+?tL?Qx4a
+
+
+Authorized.net sandbox signup 
+---------------------------------------------
+https://developer.authorize.net/hello_world/sandbox.html
+
+transaction key:   2zPyRJZ7887hsS35
+Client Key: 3M6PdjejZ2kSd4YGwbMKbwFkjTp2JveV976qs28659gb9UWxuSaXYEYdCLX72NDj
