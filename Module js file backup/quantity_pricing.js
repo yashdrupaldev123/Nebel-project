@@ -122,7 +122,11 @@
 		jQuery('.product-detail ul.product-attribute-label').empty();			
 		var attributes_name = 
 		jQuery(".product--rendered-attribute .form-item-purchased-entity-0-attributes-attribute-color").find(".product--rendered-attribute__selected").parents('.form-item-purchased-entity-0-attributes-attribute-color').find('.field--name-name').text();
+		
+		
+		if(attributes_name!=''){
 		jQuery('<li>Farbe: ' + attributes_name + '</li>').appendTo('.product-detail ul.product-attribute-label');
+		}
 		jQuery('<li>Menge: ' + product_quantity + '</li>').appendTo('.product-detail ul.product-attribute-label');
 		
 		jQuery(document).ready(function() {
