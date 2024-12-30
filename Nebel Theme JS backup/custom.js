@@ -22,27 +22,48 @@ let isHandlerAttached = false;
 (function ($, Drupal) {
   Drupal.behaviors.new = {
     attach: function (context, settings) {
-  
+
 
       // Function to attach the event handler if not already attached
       function attachChangeEventHandler() {
         if (!isHandlerAttached) {
+
           let productAttributeList = document.querySelector('ul.product-attribute-label2');
       if(productAttributeList!=null){
+    
+          
+          if(!$('.js-form-item-purchased-entity-0-attributes-attribute-select-format select').length==0)
+                      {
+         console.log($('.js-form-item-purchased-entity-0-attributes-attribute-select-format select').length);
       let productAttrFormat = document.createElement('li');
       productAttrFormat.classList.add('selected-format');
       let defaultFormatText = document.querySelector('.js-form-item-purchased-entity-0-attributes-attribute-select-format select option:first-child') ? document.querySelector('.js-form-item-purchased-entity-0-attributes-attribute-select-format select option:first-child').innerText : '';
       
-      productAttrFormat.innerText = 'Format: '+ defaultFormatText;
+      productAttrFormat.innerText = 'Formate: '+ defaultFormatText;
       productAttributeList.appendChild(productAttrFormat);
-      let productAttrThickness = document.createElement('li');
-      productAttrThickness.classList.add('selected-thickness');
-      let defaultThicknessText = document.querySelector('.js-form-item-purchased-entity-0-attributes-attribute-select-materials select option:first-child') ? document.querySelector('.js-form-item-purchased-entity-0-attributes-attribute-select-materials select option:first-child').innerText: '';
-      
-      productAttrThickness.innerText = 'Materialstärke: '+ defaultThicknessText;
-      productAttributeList.appendChild(productAttrThickness);
-                
+            }
         
+
+
+      if(!$('.js-form-item-purchased-entity-0-attributes-attribute-type select').length==0){
+        // console.log($('.js-form-item-purchased-entity-0-attributes-attribute-type select').length);
+      let productAttrType = document.createElement('li');
+      productAttrType.classList.add('selected-type');
+      let productAttrTypeText = document.querySelector('.js-form-item-purchased-entity-0-attributes-attribute-type select option:first-child') ? document.querySelector('.js-form-item-purchased-entity-0-attributes-attribute-type select option:first-child').innerText: '';
+      
+      productAttrType.innerText = 'Type: '+ productAttrTypeText;
+      productAttributeList.appendChild(productAttrType);
+        }
+
+        if(!$('.js-form-item-purchased-entity-0-attributes-attribute-material-thickness select').length==0){
+  
+        let productAttrThickness = document.createElement('li');
+        productAttrThickness.classList.add('selected-thickness');
+        let defaultThicknessText = document.querySelector('.js-form-item-purchased-entity-0-attributes-attribute-material-thickness select option:first-child') ? document.querySelector('.js-form-item-purchased-entity-0-attributes-attribute-material-thickness select option:first-child').innerText: '';
+        
+        productAttrThickness.innerText = 'Materialstärke: '+ defaultThicknessText;
+        productAttributeList.appendChild(productAttrThickness);
+        }
           // Set the flag to true to prevent reattaching the event handler
           isHandlerAttached = true;
         }
@@ -68,24 +89,41 @@ let isHandlerAttached = false;
      
     
     
-        selectedFormatLi.innerText = 'Format: ' + selectedFormatText;
+        selectedFormatLi.innerText = 'Formate: ' + selectedFormatText;
 
         // Perform any additional actions with the selected value
       });
 
+      $('.js-form-item-purchased-entity-0-attributes-attribute-material-thickness select').on('change', function () {
+        let selectedThickness = $('.js-form-item-purchased-entity-0-attributes-attribute-material-thickness select').val();
+        let selectedThicknessText = '';
+        if ($('.js-form-item-purchased-entity-0-attributes-attribute-material-thickness select option') != null) {
+          $('.js-form-item-purchased-entity-0-attributes-attribute-material-thickness select option').each((index, item) => {
+            if (item.value == selectedThickness) {
+              selectedThicknessText = item.innerText;
+            }
+          });
+        }
+        let selectedThicknessLi = document.querySelector('ul.product-attribute-label2 li.selected-thickness');
+        selectedThicknessLi.innerText = 'Materialstärke: ' + selectedThicknessText;
+     
+        // console.log('Selected value:', selectedThickness);
+        // Perform any additional actions with the selected value
+      });
 
-          $('.js-form-item-purchased-entity-0-attributes-attribute-select-materials select').on('change', function () {
-            let selectedThickness = $('.js-form-item-purchased-entity-0-attributes-attribute-select-materials select').val();
-            let selectedThicknessText = '';
-            if ($('.js-form-item-purchased-entity-0-attributes-attribute-select-materials select option') != null) {
-              $('.js-form-item-purchased-entity-0-attributes-attribute-select-materials select option').each((index, item) => {
-                if (item.value == selectedThickness) {
-                  selectedThicknessText = item.innerText;
+
+          $('.js-form-item-purchased-entity-0-attributes-attribute-type select').on('change', function () {
+            let selectedType = $('.js-form-item-purchased-entity-0-attributes-attribute-type select').val();
+            let selectedTypeText = '';
+            if ($('.js-form-item-purchased-entity-0-attributes-attribute-type select option') != null) {
+              $('.js-form-item-purchased-entity-0-attributes-attribute-type select option').each((index, item) => {
+                if (item.value == selectedType) {
+                  selectedTypeText = item.innerText;
                 }
               });
             }
-            let selectedThicknessLi = document.querySelector('ul.product-attribute-label2 li.selected-thickness');
-            selectedThicknessLi.innerText = 'Materialstärke: ' + selectedThicknessText;
+            let selectedTypeLi = document.querySelector('ul.product-attribute-label2 li.selected-type');
+            selectedTypeLi.innerText = 'Type: ' + selectedTypeText;
          
             // console.log('Selected value:', selectedThickness);
             // Perform any additional actions with the selected value
@@ -106,7 +144,7 @@ let isHandlerAttached = false;
       // console.log();
 
       let format = document.querySelector('.js-form-item-purchased-entity-0-attributes-attribute-select-format select');
-      let thickness = document.querySelector('.js-form-item-purchased-entity-0-attributes-attribute-select-materials select');
+      let thickness = document.querySelector('.js-form-item-purchased-entity-0-attributes-attribute-material-thickness select');
 if(format!=null){
       format.addEventListener('change',(e)=>{
         // console.log(e.target.value);
