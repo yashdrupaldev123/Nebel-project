@@ -11,26 +11,6 @@ use Drupal\commerce_stock\StockCheckInterface;
 use Drupal\commerce_stock\StockUpdateInterface;
 use Drupal\commerce_price\Price;
 
- function getColorAttributeId($color_name)
-  {
-    // Use the entity type manager to query for ProductAttributeValue entities.
-    $storage = \Drupal::entityTypeManager()->getStorage('commerce_product_attribute_value');
-    $color_values = $storage->loadByProperties(['name' => $color_name]);
-
-    if (!empty($color_values)) {
-      // Return the first matching color value.
-      return reset($color_values)->id();
-    } else {
-      // Create a new ProductAttributeValue entity for the color.
-      $color = ProductAttributeValue::create([
-        'attribute' => 'color', // Ensure this is the correct attribute machine name.
-        'name' => $color_name,
-      ]);
-      $color->save();
-      return $color->id();
-    }
-  }
-
 
   function custom_product_importer_preprocess_commerce_product__nebel(&$variables){
 
@@ -214,17 +194,8 @@ function custom_product_importer_batch_process($product_data, $context)
 
       $merchandise_group= sanitizeInput($data_chunk[3]);
 
-
-      $v_title =  sanitizeInput($data_chunk[5]);
-
       $variation_title= $v_title;
-      // if(str_contains($v_title, ',,') || str_contains($v_title, ',') || str_contains($v_title, '.') || str_contains($v_title, '�') || str_contains($v_title, '�') || str_contains($v_title, '�') || str_contains($v_title, '+')){
-      //   $variation_title= '"'.$v_title.'"';
-      // }else{
-      //   $variation_title= $v_title;
-      // }
 
-      $color =  sanitizeInput($data_chunk[6]);
 
       $format = sanitizeInput($data_chunk[8]);
       $guise =  sanitizeInput($data_chunk[9]);
@@ -349,8 +320,6 @@ if ($product_variation) {
 
 
       if (isset($existing_product) || !empty($existing_product)) {
-
-    
         // Setting stock data in variation
         $query = \Drupal::database()->select('commerce_product_variation__field_stock_level', 'st')
     ->fields('st', ['entity_id'])
@@ -371,30 +340,8 @@ if ($product_variation) {
 
         $product = $existing_product;
 
-
-        $product_variation->set('price', NULL);
-
-              if (empty($color)) {
-                $product_variation->set('attribute_color', NULL);
-              } else {
-                $color_attribute_id =  getAttributeId('color',$color);
-                $product_variation->set('attribute_color', $color_attribute_id);
-              }
-
-              if($product_variation->get('title')->value != $variation_title){
-              $product_variation->set('title', $variation_title);
-              }
-
-
-              if(isset($weight_kg) && !empty($weight_kg)){
-                // For Now, setting weight none
-                // $weight_attribute_id = getAttributeId('weight',$weight_kg);
-                $product_variation->set('attribute_weight', NULL);
-        }
-        else{
-                $product_variation->set('attribute_weight',  NULL);   
-        }
         $new_price = new Price($price_1, 'EUR'); 
+        
         $product_variation->set('price', $new_price);
 
                 $product_variation->save();
@@ -445,27 +392,27 @@ if ($product_variation) {
               }
             }
 
-        if($product->get('field_article_group')->value != $article_group){
-        $product->set('field_article_group', $article_group);
-        }
+      //   if($product->get('field_article_group')->value != $article_group){
+      //   $product->set('field_article_group', $article_group);
+      //   }
 
-        if($product->get('field_merchandise_group')->value != $merchandise_group){
-        $product->set('field_merchandise_group', $merchandise_group);
-        }
+      //   if($product->get('field_merchandise_group')->value != $merchandise_group){
+      //   $product->set('field_merchandise_group', $merchandise_group);
+      //   }
 
   
-       $product->set('field_guise', strtolower($guise));
+      //  $product->set('field_guise', strtolower($guise));
   
 
-        if($product->get('field_weight_kg')->value != $weight_kg){
-        $product->set('field_weight_kg', $weight_kg);
-        }
+        // if($product->get('field_weight_kg')->value != $weight_kg){
+        // $product->set('field_weight_kg', $weight_kg);
+        // }
 
-        if(!empty($customs_tariff_number)){
-          if($product->get('field_customs_tariff_number')->value != $customs_tariff_number){
-          $product->set('field_customs_tariff_number', $customs_tariff_number);
-          }
-          }
+        // if(!empty($customs_tariff_number)){
+        //   if($product->get('field_customs_tariff_number')->value != $customs_tariff_number){
+        //   $product->set('field_customs_tariff_number', $customs_tariff_number);
+        //   }
+        //   }
         $product->save();
      
       }
