@@ -1,71 +1,80 @@
 <?php
 
-use Drupal\commerce_product\Entity\Product;
-use Drupal\commerce_pricelist\Entity\PricelistItem;
-use Drupal\commerce_product\Entity\ProductVariation;
-use Drupal\commerce_product\Entity\ProductAttributeValue;
-use Drupal\taxonomy\Entity\Term;
-use Drupal\commerce_stock\StockServiceManagerInterface;
-use Drupal\commerce_stock\StockTransactionsInterface;
-use Drupal\commerce_stock\StockCheckInterface;
-use Drupal\commerce_stock\StockUpdateInterface;
-use Drupal\commerce_price\Price;
+  use Drupal\commerce_product\Entity\Product;
+  use Drupal\commerce_pricelist\Entity\PricelistItem;
+  use Drupal\commerce_product\Entity\ProductVariation;
+  use Drupal\commerce_product\Entity\ProductAttributeValue;
+  use Drupal\taxonomy\Entity\Term;
+  use Drupal\commerce_stock\StockServiceManagerInterface;
+  use Drupal\commerce_stock\StockTransactionsInterface;
+  use Drupal\commerce_stock\StockCheckInterface;
+  use Drupal\commerce_stock\StockUpdateInterface;
+  use Drupal\commerce_price\Price;
+  use Drupal\Core\State\StateInterface;
 
+  function custom_product_importer_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
+    // if ($form_id == 'commerce-product-variations') {
+      // dump($form);
 
-  function custom_product_importer_preprocess_commerce_product__nebel(&$variables){
-
-    $current_langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
-
-$variations = $variables['product_entity']->getVariations();
-
-if(!empty($variations)){
-  $first_variation = $variations[0]->getTitle();
-$product_variations_stocks = [];
-$stock_service = \Drupal::service('commerce_stock.service_manager');
-
-foreach ($variations as $variation) {
-  $variation_id = $variation->id();
-  $variation_title = $variation->getTitle();
-  $stock_level = $stock_service->getStockLevel($variation);
-
-  // dump($stock_level);
-  $product_variations_stocks[] = ['variation_id' => $variation_id,'variation_title' => $variation_title, 'stock' => $stock_level];
-}
-
-
-$variables['stock_data']=$product_variations_stocks;
-$variables['#attached']['drupalSettings']['first_variation'] = $first_variation;
-$variables['#attached']['drupalSettings']['stock_data'] = $product_variations_stocks;
-}
-
-    $variables['current_langcode'] = $current_langcode;
-    $product_category_id = $variables['product']['field_product_category']['#items'][0]->target_id;
-    $product_category = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties(['tid' => $product_category_id]);
-   if($product_category[$product_category_id]->parent[1]){
-    $parent_category = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties(['tid' => $product_category[$product_category_id]->parent[1]->target_id]);
-   }
-   else{
-    $parent_category = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties(['tid' => $product_category[$product_category_id]->parent[0]->target_id]);
-   }
-    if(isset($parent_category) && !empty($parent_category)){
-      $translated_term = reset($parent_category)->getTranslation($current_langcode);
-      $translated_name = $translated_term->getName();
-      $variables['parent_category_name'] = $translated_name;
-    }
-    else{   
-      if(reset($product_category)->hasTranslation($current_langcode)){
-          $translated_term = reset($product_category)->getTranslation($current_langcode);
-        $translated_name = $translated_term->getName();
-        $variables['parent_category_name'] = $translated_name;
-    }
-    else{
-      $variables['parent_category_name'] = reset($product_category)->getName();
-    }
-    }
+    // }
   }
 
+  function custom_product_importer_preprocess_commerce_product__nebel(&$variables){
+    $current_langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
 
+    $variations = $variables['product_entity']->getVariations();
+  
+    if(!empty($variations)){
+      $first_variation = $variations[0]->getTitle();
+      $product_variations_stocks = [];
+      $stock_service = \Drupal::service('commerce_stock.service_manager');
 
+      foreach ($variations as $variation) {
+        $variation_id = $variation->id();
+        $variation_title = $variation->getTitle();
+        $stock_level = $stock_service->getStockLevel($variation);
+        $selected_color = $variation->attribute_color[0]->target_id;
+
+        
+        $product_variations_stocks[] = ['product_id' => $variables['product_entity']->product_id->value,'variation_id' => $variation_id,'variation_title' => $variation_title, 'stock' => $stock_level, 'selected_color' => $selected_color];
+      }
+
+      $variables['stock_data']=$product_variations_stocks;
+      $variables['#attached']['drupalSettings']['first_variation'] = $first_variation;
+      $variables['#attached']['drupalSettings']['stock_data'] = $product_variations_stocks;
+    }
+
+    $variables['current_langcode'] = $current_langcode;
+    if(!empty($variables['product']['field_product_category']['#items'])){
+      $product_category_id = $variables['product']['field_product_category']['#items'][0]->target_id;
+    }
+    if(isset($product_category_id) && !empty($product_category_id)){
+      $product_category = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties(['tid' => $product_category_id]);
+      if($product_category[$product_category_id]->parent[1]){
+        $parent_category = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties(['tid' => $product_category[$product_category_id]->parent[1]->target_id]);
+      } else {
+        $parent_category = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->loadByProperties(['tid' => $product_category[$product_category_id]->parent[0]->target_id]);
+      }
+      if(isset($parent_category) && !empty($parent_category)){
+        $translated_term = reset($parent_category)->getTranslation($current_langcode);
+        $translated_name = $translated_term->getName();
+        $variables['parent_category_name'] = $translated_name;
+      } else {   
+        if(reset($product_category)->hasTranslation($current_langcode)){
+          $translated_term = reset($product_category)->getTranslation($current_langcode);
+          $translated_name = $translated_term->getName();
+          $variables['parent_category_name'] = $translated_name;
+        } else {
+          $variables['parent_category_name'] = reset($product_category)->getName();
+        }
+      }
+    }
+if(!empty($variables['product']['field_select_origin'][0]['#entity']->field_icon[0])){
+    $product_country_image = \Drupal::service('file_url_generator')->generateAbsoluteString($variables['product']['field_select_origin'][0]['#entity']->field_icon[0]->entity->uri[0]->value);
+    $variables['product_country_image_url'] = $product_country_image;
+    $variables['product_country_image_uri'] = $variables['product']['field_select_origin'][0]['#entity']->field_icon[0]->entity->uri[0]->value;
+}
+  }
 
   /**
    * Converts the input string to UTF-8 encoding, ensuring safe use and preventing character encoding issues.
@@ -73,47 +82,47 @@ $variables['#attached']['drupalSettings']['stock_data'] = $product_variations_st
    * @param string $input The input string to be converted.
    * @return string The input string in UTF-8 encoding.
    */
-  function sanitizeInput($input)
-  {
-
+  function sanitizeInput($input) {
     $original_string = $input;
-$detected_encoding = mb_detect_encoding($original_string, mb_detect_order(), true);
+    $detected_encoding = mb_detect_encoding($original_string, mb_detect_order(), true);
 
-if ($detected_encoding !== 'UTF-8') {
-    // $utf8_string = iconv($detected_encoding, "UTF-8", $original_string);
-    $utf8_string = iconv('Windows-1252', 'UTF-8', $original_string);
-} else {
-    $utf8_string = $original_string; // It's already in UTF-8
-}
-
+    if ($detected_encoding !== 'UTF-8') {
+      // $utf8_string = iconv($detected_encoding, "UTF-8", $original_string);
+      $utf8_string = iconv('Windows-1252', 'UTF-8', $original_string);
+    } else {
+      $utf8_string = $original_string; // It's already in UTF-8
+    }
     return $utf8_string;
   }
 
 
-
-
-function custom_product_importer_cron() {
-
-  // Getting CSV file path from config object's custom textfield field
-
-  $config = \Drupal::config('custom_product_importer.settings');
-
-  $csv_path_value_from_config = $config->get('csv_file_path');
-  $csv_path = $csv_path_value_from_config;
-
-
-  // Function to check if a path points to a CSV file
+/**
+ * Checks the CSV file path is valid.
+ */
   function is_csv_file($path) {
-      // Get the extension of the file and convert it to lowercase
-      $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-      return $extension === 'csv';
+    // Get the extension of the file and convert it to lowercase
+    $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    return $extension === 'csv';
   }
 
 
-  $valid_csv_path = false;
-  // Check if the path is a valid file and has a .csv extension
-  if (filter_var($csv_path, FILTER_VALIDATE_URL)) {
+/**
+ * Reads the CSV file and extracts product data.
+ */
+  function custom_product_importer_get_products_from_csv(){
 
+    // Getting CSV file path from config object's custom textfield field
+    $config = \Drupal::config('custom_product_importer.settings');
+
+    $csv_path_value_from_config = $config->get('csv_file_path');
+    $csv_path = $csv_path_value_from_config;
+    
+    // $csv_path = 'C:/Users/Admin/Downloads/ARTIKEL_09-Jan.CSV';
+    // // Function to check if a path points to a CSV file
+
+    $valid_csv_path = false;
+    // Check if the path is a valid file and has a .csv extension
+    if (filter_var($csv_path, FILTER_VALIDATE_URL)) {
 
       // If it's a URL, check the extension
       if (is_csv_file($csv_path)) {
@@ -121,346 +130,481 @@ function custom_product_importer_cron() {
       } else {
         $valid_csv_path = false;
       }
-
-
-  } elseif (file_exists($csv_path) && is_csv_file($csv_path)) {
-
+    } elseif (file_exists($csv_path) && is_csv_file($csv_path)) {
       // If it's a local file, check if it exists and has a .csv extension
       $valid_csv_path = true;
-  } else {
-
-    $valid_csv_path = false;
-
-  }
-
-
-
-
-if($valid_csv_path){
-
-
-   $product_data = [];
-   
-
-// Open the input CSV file for reading
-if (($handle = fopen($csv_path, 'r')) !== false) {
-  while (($row = fgetcsv($handle)) !== false) {
-    // Remove trailing empty values
-    while (end($row) === '') {
-      array_pop($row);
+    } else {
+      $valid_csv_path = false;
     }
-    $combinedData = implode(',', $row);
-    $product_data[] = $combinedData;
-  }
-  // Close the file after reading
-  fclose($handle);
-}  
 
 
-// Configuring batch operation for product updation in chunks
-$batch = [
-  'title' => 'Please wait, we are checking and updating commerce products...',
-  'operations' => [],
-  'finished' => 'custom_product_importer_batch_finished',
-  'init_message' => t('Preparing to update commerce products.'),
-];
+    // If csv path is valid then extract the data from it in product_data
+    if($valid_csv_path){
 
-//calling batchProcess for each chunk(1) of nodes
-foreach (array_chunk($product_data, 100) as $chunk) {
-  $batch['operations'][] = ['custom_product_importer_batch_process', [$chunk]];
-}
-batch_set($batch);
-}
+      $product_data = [];
 
-}
-
-
-
-
-
-
-function custom_product_importer_batch_process($product_data, $context)
-  {
-
-    foreach ($product_data as $key  => $data) {
-
-      // dump($data[0]);
-      $data_chunk = explode(';',$data);
-     
-      // Extracting data from CSV record
-      $sku =  sanitizeInput($data_chunk[0]); 
-      $article_group =  sanitizeInput($data_chunk[1]);  
-
-
-      $merchandise_group= sanitizeInput($data_chunk[3]);
-
-      $variation_title= $v_title;
-
-
-      $format = sanitizeInput($data_chunk[8]);
-      $guise =  sanitizeInput($data_chunk[9]);
-      $weight_kg =  (float) sanitizeInput($data_chunk[10]);
-
-      $unit_1 = $price_1 = $unit_2 = $price_2 = $unit_3 = $price_3 = $unit_4 = $price_4 = $unit_5 = $price_5 = 0;
-      if(sanitizeInput($data_chunk[11]) != 0){
-      $price_1 =  (float) sanitizeInput($data_chunk[11]); 
-      }
-      if(sanitizeInput($data_chunk[12]) != 0){
-      $unit_1 =  (float) sanitizeInput($data_chunk[12]); 
-      }
-   
-      if(sanitizeInput($data_chunk[13]) != 0){
-      $price_2 =  (float) sanitizeInput($data_chunk[13]);
-      }
-
-      if(sanitizeInput($data_chunk[14]) != 0){
-      $unit_2 =  (float) sanitizeInput($data_chunk[14]);
-      }
-
-      if(sanitizeInput($data_chunk[15]) != 0){
-      $price_3 = (float) sanitizeInput($data_chunk[15]);
-      }
-
-      if(sanitizeInput($data_chunk[16]) != 0){
-      $unit_3 =  (float) sanitizeInput($data_chunk[16]);
-      }
-      
-      if(sanitizeInput($data_chunk[17]) != 0){
-      $price_4 = (float) sanitizeInput($data_chunk[17]);
-      }
-
-      if(sanitizeInput($data_chunk[18]) != 0){
-      $unit_4 =  (float) sanitizeInput($data_chunk[18]);
-      }
-
-      if(sanitizeInput($data_chunk[19]) != 0){
-      $price_5 = (float) sanitizeInput($data_chunk[19]);
-      }
-
-      if(sanitizeInput($data_chunk[20]) != 0){
-      $unit_5 =  (float) sanitizeInput($data_chunk[20]);
+      // Open the input CSV file for reading
+      if (($handle = fopen($csv_path, 'r')) !== false) {
+        while (($row = fgetcsv($handle)) !== false) {
+          // Remove trailing empty values
+          while (end($row) === '') {
+            array_pop($row);
+          }
+          $combinedData = implode(',', $row);
+          $product_data[] = $combinedData; //stored product records from csv in $product_data[]
+        }
+        // Close the file after reading
+        fclose($handle);
       }
 
 
-if($unit_2 == $unit_1){
-  $unit_2 = 0;
-  $price_2 = 0;
-}
+      // /**** Splitting total product into chunks  ************/
+      $total_products = count($product_data);
+      $product_data_in_chunks = [];
+      $product_data_in_chunks = array_chunk($product_data,ceil($total_products / min(5, $total_products)));
+
+      /************************************ */
 
 
-if($unit_3 == $unit_1){
-  $unit_3= 0;
-  $price_3 = 0;
-}
-else{
- if($unit_3 == $unit_2){
-  $unit_3 = 0;
-  $price_3 = 0;
- } 
-}
+      /**** Getting total product skus for inactivation functionality of outdated sku************/
+      $total_products_sku = [];
+
+      $total_products = \Drupal::entityTypeManager()->getStorage('commerce_product')->loadByProperties([
+        'type' => 'nebel'
+      ]);
+
+      if(isset($total_products)){
+        foreach($total_products as $p){
+          $variations = \Drupal::entityQuery('commerce_product_variation')
+            ->condition('product_id', $p->id())
+            ->accessCheck(TRUE)
+            ->execute();
+
+          $product_variations = ProductVariation::loadMultiple($variations);
+
+          foreach ($product_variations as $variation) {
+            $sku = $variation->get('sku')->value;
+            $total_products_sku[] = $sku;
+          }
+        }
+      }
+      $state = \Drupal::state();
+
+      // Setting all product skus array to state
+      $state->set('custom_product_importer_total_product_skus', $total_products_sku);
 
 
-
-if($unit_4 == $unit_1){
-  $unit_4= 0;
-  $price_4 = 0;
-}
-else{
-  if($unit_4 == $unit_2){
-    $unit_4= 0;
-    $price_4 = 0;
+      return $product_data_in_chunks;
   }
   else{
-    if($unit_4 == $unit_3){
-      $unit_4= 0;
-      $price_4 = 0;
-    }
+    return 'Wrong CSV path name';
   }
 }
 
+/**
+ * Processes the queue immediately (Batch processing effect).
+ */
+function custom_product_importer_process_queue() {
 
+  $node = \Drupal\node\Entity\Node::create([
+    'type' => 'page',
+    'title' => 'New Dummy node created when queue run started'
+  ]);
+  $node->save();
 
-if($unit_5 == $unit_1){
-  $unit_5 = 0;
-  $price_5 = 0;
-}
-else{
-  if($unit_5 == $unit_2){
-    $unit_5 = 0;
-    $price_5 = 0;
-  }
-  else{
-    if($unit_5 == $unit_3){
-      $unit_5 = 0;
-      $price_5 = 0;
-    }
-    else{
-      if($unit_5 == $unit_4){
-        $unit_5 = 0;
-        $price_5 = 0;
+  logData('custom_product_importer_process_queue','All queues are added for product update');
+
+  // Process all queues
+  //  for ($i = 1; $i <= 5; $i++) {
+  //   \Drupal::service('queue.worker')->processQueue("commerce_product_updater_queue$i");
+  // }
+  for ($i = 1; $i <= 5; $i++) {
+    $queue =  \Drupal::queue("commerce_product_updater_queue$i");
+
+    // Process each queue item.
+    while ($item = $queue->claimItem()) {
+      try {
+        custom_product_importer_update_product($item->data); // Update product details
+        $queue->deleteItem($item);
+      }
+      catch (Exception $e) {
+        \Drupal::logger('Product Updator')->error('Product update failed: ' . $e->getMessage());
+        $queue->releaseItem($item);
       }
     }
   }
-}
-      $stock =  (float) sanitizeInput($data_chunk[22]);
-    
-      $customs_tariff_number =  sanitizeInput($data_chunk[23]);
-// 
 
-
-
-// Accessing product variation using sku
-    $product_variation = \Drupal::entityTypeManager()
-    ->getStorage('commerce_product_variation')
-    ->loadByProperties(['sku' => $sku]);
-  $product_variation = reset($product_variation); //loading variation
-
-if ($product_variation) {
-  $existing_product = $product_variation->getProduct(); //loading product using variation
-
-
-      if (isset($existing_product) || !empty($existing_product)) {
-        // Setting stock data in variation
-        $query = \Drupal::database()->select('commerce_product_variation__field_stock_level', 'st')
-    ->fields('st', ['entity_id'])
-    ->condition('entity_id', $product_variation->id())
-    ->execute();
-
-  
-  if ($query->fetchField()) {
-    $num_updated = \Drupal::database()->update('commerce_product_variation__field_stock_level')
-      ->fields(['field_stock_level_value' => $stock])
-      ->condition('entity_id', $product_variation->id())
-      ->execute();
-  }
-  else{
-    $product_variation->set('field_stock_level',$stock);
-    $product_variation->save();
+  // Check if all queues are empty before proceeding
+  $allQueuesEmpty = TRUE;
+  for ($i = 1; $i <= 5; $i++) {
+    $queue = \Drupal::queue("commerce_product_updater_queue$i");
+    if ($queue->numberOfItems() > 0) {
+      $allQueuesEmpty = FALSE;
+      break;
+    }
   }
 
-        $product = $existing_product;
 
-        $new_price = new Price($price_1, 'EUR'); 
+
+  // If queue is empty, mark processing as complete
+  if ($allQueuesEmpty) {
+    $state = \Drupal::state();
+      $product_skus = $state->get('custom_product_importer_total_product_skus');
+      logData('Update from all queues','Queue processing completed, all product updated');
+      if(sizeof($product_skus)!=0){
+        foreach($product_skus as $key => $SKU){
+          $product_variation_storage = \Drupal::entityTypeManager()->getStorage('commerce_product_variation');
+
+          // Query for the product variation by SKU
+          $variations = $product_variation_storage->loadByProperties(['sku' => $SKU]);
         
-        $product_variation->set('price', $new_price);
+          // Check if any variation is found
+          if (!empty($variations)) {
+            $current_variation = reset($variations);
+            $current_variation->set('status', 0);
+            $current_variation->save();
+          }
+        }
+      }
+  }
+}
 
-                $product_variation->save();
 
-              // Checking and updating price
 
-              $price_list = \Drupal::entityTypeManager()
-              ->getStorage('commerce_pricelist')
-              ->loadByProperties(['name' => 'Price table']);
-              $pricelist = reset($price_list);
+/**
+ * Updates a product based on CSV data chunk.
+ */
+function custom_product_importer_update_product($data) {
+  
+        $data_chunk = explode(';',$data);
+        // Extracting data from CSV record
+        $sku =  sanitizeInput($data_chunk[0]); 
+        logData('custom_product_importer_update_product','Product update started of product having sku '.$sku);
+        // logData('sku (in queue process of product): ',$sku);
 
-              $all_price_item = \Drupal::entityTypeManager()
-              ->getStorage('commerce_pricelist_item')
-              ->loadByProperties([
-                'type' => 'commerce_product_variation',
-                'purchasable_entity' => $product_variation->id(),
-                'price_list_id' => $pricelist->id()
-              ]);
+        $state = \Drupal::state();
+        $product_skus = $state->get('custom_product_importer_total_product_skus');
+        $key = array_search($sku, $product_skus);
+        if ($key !== false) {
+            unset($product_skus[$key]);
+        }
+      $state->set('custom_product_importer_total_product_skus', $product_skus);
 
-              if(isset($all_price_item) || !empty($all_price_item)){
-                foreach($all_price_item as $p){
-                  $p->delete();
-                }
+
+        $color = sanitizeInput($data_chunk[6]); 
+        $article_group =  sanitizeInput($data_chunk[1]);  
+        $variation_title= sanitizeInput($data_chunk[5]);
+        $merchandise_group= sanitizeInput($data_chunk[3]);
+        $format = sanitizeInput($data_chunk[8]);
+        $guise =  sanitizeInput($data_chunk[9]);
+        $weight_kg =  (float) sanitizeInput($data_chunk[10]);
+  
+        $unit_1 = $price_1 = $unit_2 = $price_2 = $unit_3 = $price_3 = $unit_4 = $price_4 = $unit_5 = $price_5 = 0;
+        if(sanitizeInput($data_chunk[11]) != 0){
+          $price_1 =  (float) sanitizeInput($data_chunk[11]); 
+          
+        }
+        if(sanitizeInput($data_chunk[12]) != 0){
+          $unit_1 =  (float) sanitizeInput($data_chunk[12]);
+        }
+        if(sanitizeInput($data_chunk[13]) != 0){
+          $price_2 =  (float) sanitizeInput($data_chunk[13]);
+       
+        }
+        if(sanitizeInput($data_chunk[14]) != 0){
+          $unit_2 =  (float) sanitizeInput($data_chunk[14]);
+        }
+        if(sanitizeInput($data_chunk[15]) != 0){
+          $price_3 = (float) sanitizeInput($data_chunk[15]);
+         
+        }
+        if(sanitizeInput($data_chunk[16]) != 0){
+          $unit_3 =  (float) sanitizeInput($data_chunk[16]);
+        }
+        if(sanitizeInput($data_chunk[17]) != 0){
+          $price_4 = (float) sanitizeInput($data_chunk[17]);
+        }
+        if(sanitizeInput($data_chunk[18]) != 0){
+          $unit_4 =  (float) sanitizeInput($data_chunk[18]);
+        }
+        if(sanitizeInput($data_chunk[19]) != 0){
+          $price_5 = (float) sanitizeInput($data_chunk[19]);
+        }
+        if(sanitizeInput($data_chunk[20]) != 0){
+          $unit_5 =  (float) sanitizeInput($data_chunk[20]);
+        }
+        if($unit_2 == $unit_1){
+          $unit_2 = 0;
+          $price_2 = 0;
+        }
+        if($unit_3 == $unit_1){
+          $unit_3= 0;
+          $price_3 = 0;
+        } else {
+          if($unit_3 == $unit_2){
+            $unit_3 = 0;
+            $price_3 = 0;
+          } 
+        }
+        if($unit_4 == $unit_1){
+          $unit_4= 0;
+          $price_4 = 0;
+        } else {
+          if($unit_4 == $unit_2){
+            $unit_4= 0;
+            $price_4 = 0;
+          } else {
+            if($unit_4 == $unit_3){
+              $unit_4= 0;
+              $price_4 = 0;
+            }
+          }
+        }
+        if($unit_5 == $unit_1){
+          $unit_5 = 0;
+          $price_5 = 0;
+        } else {
+          if($unit_5 == $unit_2){
+            $unit_5 = 0;
+            $price_5 = 0;
+          } else {
+            if($unit_5 == $unit_3){
+              $unit_5 = 0;
+              $price_5 = 0;
+            } else {
+              if($unit_5 == $unit_4){
+                $unit_5 = 0;
+                $price_5 = 0;
               }
-              
-              for ($i = 1; $i != 6; $i++) {
-                if(isset(${'unit_' . $i}) && isset(${'price_' . $i})){
+            }
+          }
+        }
+      
+        $stock =  (float) sanitizeInput($data_chunk[22]);
+        $customs_tariff_number =  sanitizeInput($data_chunk[23]);
+  
+        // Accessing product variation using sku
+        $product_variation = \Drupal::entityTypeManager()
+          ->getStorage('commerce_product_variation')
+          ->loadByProperties(['sku' => $sku]);
+        $product_variation = reset($product_variation); //loading variation
+  
+        if ($product_variation) {
+          $product_variation->set('status', 1);
+          $existing_product = $product_variation->getProduct(); //loading product using variation
+          if (isset($existing_product) || !empty($existing_product)) {
+            // Setting stock data in variation
+            $query = \Drupal::database()->select('commerce_product_variation__field_stock_level', 'st')
+              ->fields('st', ['entity_id'])
+              ->condition('entity_id', $product_variation->id())
+              ->execute();
+          
+            if ($query->fetchField()) {
+              $num_updated = \Drupal::database()->update('commerce_product_variation__field_stock_level')
+                ->fields(['field_stock_level_value' => $stock])
+                ->condition('entity_id', $product_variation->id())
+                ->execute();
+            } else {
+              $product_variation->set('field_stock_level',$stock);
+              $product_variation->save();
+            }
+            $product = $existing_product;
+            $new_price = new Price($price_1, 'EUR'); 
+            $product_variation->set('price', $new_price);
+            $product_variation->save();
+  
+            // Checking and updating price
+            $price_list = \Drupal::entityTypeManager()
+                    ->getStorage('commerce_pricelist')
+                    ->loadByProperties(['name' => 'Price table']);
+            $pricelist = reset($price_list);
+  
+            $all_price_item = \Drupal::entityTypeManager()
+                ->getStorage('commerce_pricelist_item')
+                ->loadByProperties([
+                      'type' => 'commerce_product_variation',
+                      'purchasable_entity' => $product_variation->id(),
+                      'price_list_id' => $pricelist->id()
+                ]);
+  
+            if(isset($all_price_item) || !empty($all_price_item)){
+              foreach($all_price_item as $p){
+                $p->delete();
+              }
+            }
+                    
+            for ($i = 1; $i != 6; $i++) {
+              if(isset(${'unit_' . $i}) && isset(${'price_' . $i})){
                 $unit_variable = ${'unit_' . $i}; // Equivalent to $unit_1, $unit_2, etc.
                 $price_variable = ${'price_' . $i}; // Equivalent to $price_1, $price_2, etc.
-
-
+  
                 if (isset($unit_variable) && isset($price_variable)) {
-                 
                   if($unit_variable!=0 && $price_variable!=0){
                     $price_item = PriceListItem::create([
-                      'type' => 'commerce_product_variation',
-                      'pricelist' => $pricelist->id(),
-                      'quantity' => $unit_variable,
-                      'purchasable_entity' => $product_variation->id(),
-                      // 'purchasable_entity' => $variation->id(),
-                      'price' => new \Drupal\commerce_price\Price($price_variable, 'EUR'),
-                      'variation' => $product_variation->id(),
-                      'price_list_id' => $pricelist->id()
+                            'type' => 'commerce_product_variation',
+                            'pricelist' => $pricelist->id(),
+                            'quantity' => $unit_variable,
+                            'purchasable_entity' => $product_variation->id(),
+                            // 'purchasable_entity' => $variation->id(),
+                            'price' => new \Drupal\commerce_price\Price($price_variable, 'EUR'),
+                            'variation' => $product_variation->id(),
+                            'price_list_id' => $pricelist->id()
                     ]);
                     $price_item->save();
                   }
                 }
               }
             }
-
-      //   if($product->get('field_article_group')->value != $article_group){
-      //   $product->set('field_article_group', $article_group);
-      //   }
-
-      //   if($product->get('field_merchandise_group')->value != $merchandise_group){
-      //   $product->set('field_merchandise_group', $merchandise_group);
-      //   }
-
+            
+            // if($product->get('field_article_group')->value != $article_group){
+            //   $product->set('field_article_group', $article_group);
+            // }
   
-      //  $product->set('field_guise', strtolower($guise));
+            // if($product->get('field_merchandise_group')->value != $merchandise_group){
+            //   $product->set('field_merchandise_group', $merchandise_group);
+            // }
+            // $product->set('field_guise', strtolower($guise));
   
-
-        // if($product->get('field_weight_kg')->value != $weight_kg){
-        // $product->set('field_weight_kg', $weight_kg);
-        // }
-
-        // if(!empty($customs_tariff_number)){
-        //   if($product->get('field_customs_tariff_number')->value != $customs_tariff_number){
-        //   $product->set('field_customs_tariff_number', $customs_tariff_number);
-        //   }
-        //   }
-        $product->save();
-     
-      }
-    }
-    }
-    $context['message'] = t('Updating products...');
+            // if($product->get('field_weight_kg')->value != $weight_kg){
+            //   $product->set('field_weight_kg', $weight_kg);
+            // }
   
+            // if(!empty($customs_tariff_number)){
+            //   if($product->get('field_customs_tariff_number')->value != $customs_tariff_number){
+            //     $product->set('field_customs_tariff_number', $customs_tariff_number);
+            //   }
+            // }
+            $product->save();
+          }
+        } else{
+          $store = \Drupal\commerce_store\Entity\Store::load(1);
+          $product = Product::create(['type' => 'nebel', 'stores' => [$store], 'status' => 0]);
+          $product->setTitle($variation_title);
+          $product->set('field_custom_product_id', $custom_product_id);
+          $product->set('field_article_group', $article_group);
+          $product->set('field_merchandise_group', $merchandise_group);
+          $product->set('field_guise', strtolower($guise));
+          $product->save();
+          if(!empty($customs_tariff_number)){
+            $product->set('field_customs_tariff_number', $customs_tariff_number);
+          }
+  
+          if (empty($color) || $color == NULL) {
+            $color_attribute_id = NULL;
+          } else {
+            $full_color_name = $sku . '(' . $color . ')';
+            $color_attribute_id = getColorAttributeId($full_color_name);
+         
+          }
+  
+          $new_variation = ProductVariation::create([
+            'type' => 'nebel',
+            'sku' => $sku,
+            'title' => $variation_title,
+            'price' => new \Drupal\commerce_price\Price($price_1, 'EUR'),
+            'status' => 1,
+            'attribute_color' => $color_attribute_id,
+          ]);
+          $new_variation->save();
+  
+          $product->addVariation($new_variation);
+          $product->save();
+        }
 }
+
+
+
+
+
+function custom_product_importer_cron() {
+  \Drupal::logger('custom_product_importer')->notice('Cron function triggered.');
+  custom_product_updator();
+}
+
+function custom_product_updator() {
+  \Drupal::logger('custom_product_importer')->notice('custom_product_updator function executed.');
+  
+  $node = \Drupal\node\Entity\Node::create([
+    'type' => 'page',
+    'title' => 'Demo node created on cron run'
+  ]);
+  $node->save();
+
+    $queue1 = \Drupal::queue('commerce_product_updater_queue1');
+    $queue2 = \Drupal::queue('commerce_product_updater_queue2');
+    $queue3 = \Drupal::queue('commerce_product_updater_queue3');
+    $queue4 = \Drupal::queue('commerce_product_updater_queue4');
+    $queue5 = \Drupal::queue('commerce_product_updater_queue5');
+    $queues = [$queue1,$queue2,$queue3,$queue4,$queue5];
+    $products = custom_product_importer_get_products_from_csv(); // Reading CSV and getting product data containing chunks of product_data
+
+    if (is_array($products) && !empty($products)) {
+
+        for($i=0;$i< count($products);$i++){
+          foreach($products[$i] as $p){
+            $queues[$i]->createItem($p);
+          }
+        }
+      }
+
+      // Process all queued items immediately in the same cron run
+      custom_product_importer_process_queue();
+    
+  }
+
 
 
   /**
- * Finished callback for the batch process.
- */
-function custom_product_importer_batch_finished($success, $results, $operations) {
-  if ($success) {
-    \Drupal::messenger()->addStatus(t('All products have been updating successfully.'));
-  } else {
-    \Drupal::messenger()->addError(t('An error occurred while importing products.'));
-  }
-}
+   * Retrieves or creates the color attribute ID by color name.
+   *
+   * @param string $color_name
+   *   The color name.
+   *
+   * @return int|null
+   *   The color attribute ID, or NULL if not found.
+   */
+  function getColorAttributeId($color_name){
+    if(isset($color_name) && !empty($color_name)){
+      // Use the entity type manager to query for ProductAttributeValue entities.
+      $storage = \Drupal::entityTypeManager()->getStorage('commerce_product_attribute_value');
+      $color_values = $storage->loadByProperties(['name' => $color_name]);
 
-
-
-function getAttributeId($attr,$attribute_value)
-{
-
-  // Use the entity type manager to query for ProductAttributeValue entities.
-  $storage = \Drupal::entityTypeManager()->getStorage('commerce_product_attribute_value');
-  $attribute_values = $storage->loadByProperties(['name' => $attribute_value]);
-
-  if (!empty($attribute_values)) {
-    // Return the first matching attribute value.
-    return reset($attribute_values)->id();
-  } else {
-    // Create a new ProductAttributeValue entity for the color.
-    $attribute = ProductAttributeValue::create([
-      'attribute' => $attr, // Ensuring this is the correct attribute machine name.
-      'name' => $attribute_value,
-    ]);
-    $attribute->save();
-
-    return $attribute->id();
+      if (!empty($color_values)) {
+        // Return the first matching color value.
+        return reset($color_values)->id();
+      } else {
+        // Create a new ProductAttributeValue entity for the color.
+        $color = ProductAttributeValue::create([
+          'attribute' => 'color', // Ensure this is the correct attribute machine name.
+          'name' => $color_name,
+        ]);
+        $color->save();
+        return $color->id();
+      }
+    }
   }
 
- 
-}
+  function getAttributeId($attr,$attribute_value) {
 
-function logData($key,$data){
-  \Drupal::logger($key)->notice('<pre><code>'.print_r($data,TRUE).'</code></pre>');
-}
+    // Use the entity type manager to query for ProductAttributeValue entities.
+    $storage = \Drupal::entityTypeManager()->getStorage('commerce_product_attribute_value');
+    $attribute_values = $storage->loadByProperties(['name' => $attribute_value]);
 
+    if (!empty($attribute_values)) {
+      // Return the first matching attribute value.
+      return reset($attribute_values)->id();
+    } else {
+      // Create a new ProductAttributeValue entity for the color.
+      $attribute = ProductAttributeValue::create([
+        'attribute' => $attr, // Ensuring this is the correct attribute machine name.
+        'name' => $attribute_value,
+      ]);
+      $attribute->save();
+
+      return $attribute->id();
+    }
+  }
+
+  function logData($key,$data){
+    \Drupal::logger($key)->notice('<pre><code>'.print_r($data,TRUE).'</code></pre>');
+  }
